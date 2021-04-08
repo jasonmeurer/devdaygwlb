@@ -414,7 +414,7 @@ Resources:
 
   TgwStack:
     Type: AWS::CloudFormation::Stack
-    DependsOn: ['ApplianceVpcStack', 'Spoke1VpcStack', 'Spoke2VpcStack' ]
+    # DependsOn: ['Spoke1VpcStack', 'Spoke2VpcStack' ]
     Properties:
       TemplateURL: 'https://s3-us-west-2.amazonaws.com/tech-content-us-west-2/aws-gwlb-cloudformation-samples/centralized-architecture/nested-stack/Tgw.yaml'
       Parameters:
