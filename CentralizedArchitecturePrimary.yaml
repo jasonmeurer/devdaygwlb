@@ -441,3 +441,7 @@ Resources:
         Spoke2VpcTgwAttachSubnet2Id: !GetAtt ['Spoke2VpcStackWeb', 'Outputs.SpokeTgwAttachSubnet2Id']
         Spoke2VpcRtb1Id: !GetAtt ['Spoke2VpcStackWeb', 'Outputs.SpokeApplicationRouteTableId']
         AccessLocation: !Ref AccessLocation
+
+
+
+        
