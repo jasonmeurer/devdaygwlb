@@ -16,7 +16,7 @@ Description: >-
   AWS CloudFormation Sample Template For Appliance VPC Setup in Centralized
   Archite For Gateway Load Balancer (GWLB). It creates a hairpin setup using
   iptables. Appliance VPC is created in the same account as Spoke VPCs and
-  Transit Gateay.
+  Transit Gateay. 
   
   This template creates:
     - 1 VPC
@@ -172,10 +172,10 @@ Parameters:
     Type: String
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
   ApplianceInstanceType:
-    Description: Select EC2 instance type for Appliance instance. Default is set to t2.micro
-    Default: t2.micro
+    Description: Select EC2 instance type for Appliance instance. Default is set to t3.micro
+    Default: t3.micro
     AllowedValues:
-      - t2.micro
+      - t3.micro
     Type: String
   ApplianceInstanceAmiId:
     Description: EC2 Instance AMI ID retrieved using SSM
@@ -249,8 +249,8 @@ Resources:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCidr
-      EnableDnsSupport: "true"
-      EnableDnsHostnames: "true"
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
       InstanceTenancy: default
       Tags:
         - Key: Name
@@ -284,7 +284,7 @@ Resources:
       AvailabilityZone: !Ref AvailabilityZone1
       CidrBlock: !Ref TgwAttachSubnet1Cidr
       VpcId: !Ref Vpc
-      MapPublicIpOnLaunch: "true"
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-tgw-attach-subnet-1"
@@ -295,7 +295,7 @@ Resources:
       AvailabilityZone: !Ref AvailabilityZone1
       CidrBlock: !Ref ApplianceSubnet1Cidr
       VpcId: !Ref Vpc
-      MapPublicIpOnLaunch: "true"
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-applinace-subnet-1"
@@ -306,7 +306,7 @@ Resources:
       AvailabilityZone: !Ref AvailabilityZone1
       CidrBlock: !Ref NatgwSubnet1Cidr
       VpcId: !Ref Vpc
-      MapPublicIpOnLaunch: "true"
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-natgw-subnet-1"
@@ -318,7 +318,7 @@ Resources:
       AvailabilityZone: !Ref AvailabilityZone2
       CidrBlock: !Ref TgwAttachSubnet2Cidr
       VpcId: !Ref Vpc
-      MapPublicIpOnLaunch: "true"
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-tgw-attach-subnet-2"
@@ -329,7 +329,7 @@ Resources:
       AvailabilityZone: !Ref AvailabilityZone2
       CidrBlock: !Ref ApplianceSubnet2Cidr
       VpcId: !Ref Vpc
-      MapPublicIpOnLaunch: "true"
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-appliance-subnet-2"
@@ -340,7 +340,7 @@ Resources:
       AvailabilityZone: !Ref AvailabilityZone2
       CidrBlock: !Ref NatgwSubnet2Cidr
       VpcId: !Ref Vpc
-      MapPublicIpOnLaunch: "true"
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-natgw-subnet-2"
@@ -822,7 +822,7 @@ Resources:
       Protocol: GENEVE
       TargetGroupAttributes:
       - Key: deregistration_delay.timeout_seconds
-        Value: 20
+        Value: "20"
       VpcId: !Ref Vpc
       HealthCheckPort: !Ref HealthPort
       HealthCheckProtocol: !Ref HealthProtocol

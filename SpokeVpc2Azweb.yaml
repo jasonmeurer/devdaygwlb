@@ -394,36 +394,36 @@ Resources:
           touch /home/ec2-user/.vimrc;
           echo "set background=dark" >> /home/ec2-user/.vimrc;
 
-  Application2:
-    Type: AWS::EC2::Instance
-    Properties:
-      ImageId: !Ref ApplicationInstanceAmiId
-      KeyName: !Ref KeyPairName
-      InstanceType: !Ref ApplicationInstanceType
-      SecurityGroupIds:
-        - !Ref ApplicationSg
-      SubnetId: !Ref ApplicationSubnet2
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeSize: !Ref ApplicationInstanceDiskSize
-      Tags:
-        - Key: Name
-          Value: !Sub "${AWS::StackName}-application-instance-2"
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash -ex
+  # Application2:
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     ImageId: !Ref ApplicationInstanceAmiId
+  #     KeyName: !Ref KeyPairName
+  #     InstanceType: !Ref ApplicationInstanceType
+  #     SecurityGroupIds:
+  #       - !Ref ApplicationSg
+  #     SubnetId: !Ref ApplicationSubnet2
+  #     BlockDeviceMappings:
+  #       - DeviceName: /dev/xvda
+  #         Ebs:
+  #           VolumeSize: !Ref ApplicationInstanceDiskSize
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub "${AWS::StackName}-application-instance-2"
+  #     UserData:
+  #       Fn::Base64: !Sub |
+  #         #!/bin/bash -ex
 
-          # Configure hostname:
-          hostnamectl set-hostname ${AWS::StackName}-application2;
+  #         # Configure hostname:
+  #         hostnamectl set-hostname ${AWS::StackName}-application2;
 
-          # Configure SSH client alive interval for ssh session timeout:
-          echo 'ClientAliveInterval 60' | sudo tee --append /etc/ssh/sshd_config;
-          service sshd restart;
+  #         # Configure SSH client alive interval for ssh session timeout:
+  #         echo 'ClientAliveInterval 60' | sudo tee --append /etc/ssh/sshd_config;
+  #         service sshd restart;
           
-          # Set dark background for vim:
-          touch /home/ec2-user/.vimrc;
-          echo "set background=dark" >> /home/ec2-user/.vimrc;
+  #         # Set dark background for vim:
+  #         touch /home/ec2-user/.vimrc;
+  #         echo "set background=dark" >> /home/ec2-user/.vimrc;
 
 # Create security group for bastion host:
   BastionSg:
@@ -457,40 +457,40 @@ Resources:
           Value: !Sub "${AWS::StackName}-bastion-sg"
 
 # Create Bastion Host (creates only one bastion host in one AZ):
-  BastionHost:
-    Type: AWS::EC2::Instance
-    Properties:
-      ImageId: !Ref ApplicationInstanceAmiId
-      KeyName: !Ref KeyPairName
-      InstanceType: !Ref ApplicationInstanceType
-      SecurityGroupIds:
-        - !Ref BastionSg
-      SubnetId: !Ref BastionSubnet1
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeSize: !Ref ApplicationInstanceDiskSize
-      Tags:
-        - Key: Name
-          Value: !Sub "${AWS::StackName}-bastion-host-1"
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash -ex
+  # BastionHost:
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     ImageId: !Ref ApplicationInstanceAmiId
+  #     KeyName: !Ref KeyPairName
+  #     InstanceType: !Ref ApplicationInstanceType
+  #     SecurityGroupIds:
+  #       - !Ref BastionSg
+  #     SubnetId: !Ref BastionSubnet1
+  #     BlockDeviceMappings:
+  #       - DeviceName: /dev/xvda
+  #         Ebs:
+  #           VolumeSize: !Ref ApplicationInstanceDiskSize
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub "${AWS::StackName}-bastion-host-1"
+  #     UserData:
+  #       Fn::Base64: !Sub |
+  #         #!/bin/bash -ex
 
-          # Install packages:
-          yum update -y;
-          yum install htop -y;
+  #         # Install packages:
+  #         yum update -y;
+  #         yum install htop -y;
 
-          # Configure hostname:
-          hostnamectl set-hostname ${AWS::StackName}-bastion-host1;
+  #         # Configure hostname:
+  #         hostnamectl set-hostname ${AWS::StackName}-bastion-host1;
 
-          # Configure SSH client alive interval for ssh session timeout:
-          echo 'ClientAliveInterval 60' | sudo tee --append /etc/ssh/sshd_config;
-          service sshd restart;
+  #         # Configure SSH client alive interval for ssh session timeout:
+  #         echo 'ClientAliveInterval 60' | sudo tee --append /etc/ssh/sshd_config;
+  #         service sshd restart;
           
-          # Set dark background for vim:
-          touch /home/ec2-user/.vimrc;
-          echo "set background=dark" >> /home/ec2-user/.vimrc;
+  #         # Set dark background for vim:
+  #         touch /home/ec2-user/.vimrc;
+  #         echo "set background=dark" >> /home/ec2-user/.vimrc;
 
 # Edit applicaiton security group to allow access from bastion host:
   ApplicationSgIngress:
@@ -512,18 +512,18 @@ Outputs:
   SpokeApplication1PrivateIp:
     Description: Spoke VPC Application Instance Private IP
     Value: !GetAtt Application1.PrivateIp
-  SpokeApplication2PrivateIp:
-    Description: Spoke VPC Application Instance Private IP
-    Value: !GetAtt Application2.PrivateIp      
+  # SpokeApplication2PrivateIp:
+  #   Description: Spoke VPC Application Instance Private IP
+  #   Value: !GetAtt Application2.PrivateIp      
   SpokeApplication1PublicIp:
     Description: Spoke VPC Application Instance Public IP
     Value: !GetAtt Application1.PublicIp
-  SpokeApplication2PublicIp:
-    Description: Spoke VPC Application Instance Public IP
-    Value: !GetAtt Application2.PublicIp    
-  SpokeBastionHostPublicIp:
-    Description: Spoke VPC Bastion Instance Public IP
-    Value: !GetAtt BastionHost.PublicIp
+  # SpokeApplication2PublicIp:
+  #   Description: Spoke VPC Application Instance Public IP
+  #   Value: !GetAtt Application2.PublicIp    
+  # SpokeBastionHostPublicIp:
+  #   Description: Spoke VPC Bastion Instance Public IP
+  #   Value: !GetAtt BastionHost.PublicIp
   SpokeTgwAttachSubnet1Id:
     Description: Spoke VPC TgwAttachSubnet1 ID
     Value: !Ref TgwAttachSubnet1

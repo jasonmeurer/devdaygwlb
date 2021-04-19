@@ -148,15 +148,17 @@ Parameters:
     Description: Availability Zone 1
     Type: AWS::EC2::AvailabilityZone::Name
     ConstraintDescription: Valid Availability Zone Id
+    Default: us-west-2a
   AvailabilityZone2:
     Description: Availability Zone 2
     Type: AWS::EC2::AvailabilityZone::Name
+    Default: us-west-2b
     ConstraintDescription: Valid Availability Zone Id
   EC2InstanceType:
-    Description: Select EC2 instance type. Default is set to t2.micro
-    Default: t2.micro
+    Description: Select EC2 instance type. Default is set to t3.micro
+    Default: t3.micro
     AllowedValues:
-      - t2.micro
+      - t3.micro
     Type: String
   EC2InstanceAmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
@@ -170,6 +172,7 @@ Parameters:
   KeyPairName:
     Description: EC2 KeyPair required for accessing EC2 instance
     Type: AWS::EC2::KeyPair::KeyName
+    Default: awsmain
     ConstraintDescription: Must be the name of an existing EC2 KeyPair
   AccessLocation:
     Description: >-
@@ -349,7 +352,7 @@ Resources:
   ApplianceVpcStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: 'https://raw.githubusercontent.com/jasonmeurer/devdaygwlb/main/ApplianceVpc2Az.yaml'
+      TemplateURL: 'https://jjmdevday.s3-us-west-2.amazonaws.com/cft/ApplianceVpc2Az.yaml'
       Parameters:
         VpcCidr: !Ref ApplianceVpcCidr
         AvailabilityZone1: !Ref AvailabilityZone1
@@ -372,10 +375,11 @@ Resources:
         HealthPort: !Ref ApplianceVpcHealthPort
         HealthProtocol: !Ref ApplianceVpcHealthProtocol
 
-  Spoke1VpcStack:
+  Spoke1VpcStackDB:
     Type: AWS::CloudFormation::Stack
+    # DependsOn: ApplianceVpcStack
     Properties:
-      TemplateURL: 'https://raw.githubusercontent.com/jasonmeurer/devdaygwlb/main/SpokeVpc2Az.yaml'
+      TemplateURL: 'https://jjmdevday.s3-us-west-2.amazonaws.com/cft/SpokeVpc2Azdb.yaml'
       Parameters:
         VpcCidr: !Ref Spoke1VpcCidr
         AvailabilityZone1: !Ref AvailabilityZone1
@@ -392,10 +396,11 @@ Resources:
         KeyPairName: !Ref KeyPairName
         AccessLocation: !Ref AccessLocation
 
-  Spoke2VpcStack:
+  Spoke2VpcStackWeb:
     Type: AWS::CloudFormation::Stack
+    # DependsOn: ApplianceVpcStack
     Properties:
-      TemplateURL: 'https://raw.githubusercontent.com/jasonmeurer/devdaygwlb/main/SpokeVpc2Az.yaml'
+      TemplateURL: 'https://jjmdevday.s3-us-west-2.amazonaws.com/cft/SpokeVpc2Azweb.yaml'
       Parameters:
         VpcCidr: !Ref Spoke2VpcCidr
         AvailabilityZone1: !Ref AvailabilityZone1
@@ -414,9 +419,9 @@ Resources:
 
   TgwStack:
     Type: AWS::CloudFormation::Stack
-    # DependsOn: ['Spoke1VpcStack', 'Spoke2VpcStack' ]
+    # DependsOn: ['Spoke1VpcStackDB', 'Spoke2VpcStackWeb' ]
     Properties:
-      TemplateURL: 'https://raw.githubusercontent.com/jasonmeurer/devdaygwlb/main/Tgw.yaml'
+      TemplateURL: 'https://jjmdevday.s3-us-west-2.amazonaws.com/cft/Tgw.yaml'
       Parameters:
         ApplianceVpcId: !GetAtt
           - ApplianceVpcStack
@@ -425,14 +430,14 @@ Resources:
         ApplianceVpcTgwAttachSubnet2Id: !GetAtt ['ApplianceVpcStack', 'Outputs.ApplianceTgwAttachSubnet2Id']
         ApplianceVpcApplianceRtb1Id: !GetAtt ['ApplianceVpcStack', 'Outputs.ApplianceRtb1Id']
         ApplianceVpcApplianceRtb2Id: !GetAtt ['ApplianceVpcStack', 'Outputs.ApplianceRtb2Id']
-        Spoke1VpcId: !GetAtt ['Spoke1VpcStack', 'Outputs.SpokeVpcId']
-        Spoke1VpcCidr: !GetAtt ['Spoke1VpcStack', 'Outputs.SpokeVpcCidr']
-        Spoke1VpcTgwAttachSubnet1Id: !GetAtt ['Spoke1VpcStack', 'Outputs.SpokeTgwAttachSubnet1Id']
-        Spoke1VpcTgwAttachSubnet2Id: !GetAtt ['Spoke1VpcStack', 'Outputs.SpokeTgwAttachSubnet2Id']
-        Spoke1VpcRtb1Id: !GetAtt ['Spoke1VpcStack', 'Outputs.SpokeApplicationRouteTableId']
-        Spoke2VpcId: !GetAtt ['Spoke2VpcStack', 'Outputs.SpokeVpcId']
-        Spoke2VpcCidr: !GetAtt ['Spoke2VpcStack', 'Outputs.SpokeVpcCidr']
-        Spoke2VpcTgwAttachSubnet1Id: !GetAtt ['Spoke2VpcStack', 'Outputs.SpokeTgwAttachSubnet1Id']
-        Spoke2VpcTgwAttachSubnet2Id: !GetAtt ['Spoke2VpcStack', 'Outputs.SpokeTgwAttachSubnet2Id']
-        Spoke2VpcRtb1Id: !GetAtt ['Spoke2VpcStack', 'Outputs.SpokeApplicationRouteTableId']
+        Spoke1VpcId: !GetAtt ['Spoke1VpcStackDB', 'Outputs.SpokeVpcId']
+        Spoke1VpcCidr: !GetAtt ['Spoke1VpcStackDB', 'Outputs.SpokeVpcCidr']
+        Spoke1VpcTgwAttachSubnet1Id: !GetAtt ['Spoke1VpcStackDB', 'Outputs.SpokeTgwAttachSubnet1Id']
+        Spoke1VpcTgwAttachSubnet2Id: !GetAtt ['Spoke1VpcStackDB', 'Outputs.SpokeTgwAttachSubnet2Id']
+        Spoke1VpcRtb1Id: !GetAtt ['Spoke1VpcStackDB', 'Outputs.SpokeApplicationRouteTableId']
+        Spoke2VpcId: !GetAtt ['Spoke2VpcStackWeb', 'Outputs.SpokeVpcId']
+        Spoke2VpcCidr: !GetAtt ['Spoke2VpcStackWeb', 'Outputs.SpokeVpcCidr']
+        Spoke2VpcTgwAttachSubnet1Id: !GetAtt ['Spoke2VpcStackWeb', 'Outputs.SpokeTgwAttachSubnet1Id']
+        Spoke2VpcTgwAttachSubnet2Id: !GetAtt ['Spoke2VpcStackWeb', 'Outputs.SpokeTgwAttachSubnet2Id']
+        Spoke2VpcRtb1Id: !GetAtt ['Spoke2VpcStackWeb', 'Outputs.SpokeApplicationRouteTableId']
         AccessLocation: !Ref AccessLocation
