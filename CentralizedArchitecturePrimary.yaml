@@ -20,7 +20,7 @@ Description: >-
   
   **WARNING** This template creates one or more Amazon EC2 instances,
   GWLB, GWLB endpints, NAT gateways and Transit Gateway. You will be billed for the AWS 
-  resources used if you create a stack from this template....
+  resources used if you create a stack from this template.
 
 Metadata:
   AWS::CloudFormation::Interface:
