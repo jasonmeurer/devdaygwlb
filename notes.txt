@@ -27,7 +27,7 @@ sudo apt-get update
 
 
 until resp=$(curl -s -S -g --max-time 3 --insecure "http://neverssl.com");do
-if [[ $resp == *"[CDATA[fuck"* ]] ; then
+if [[ $resp == *"[CDATA[success"* ]] ; then
     echo "found"
     break
   fi
@@ -45,7 +45,3 @@ sudo apt-get update && sudo apt-get -y install debconf-i18n && DEBIAN_FRONTEND=n
 
 
 
-
-aws ec2 describe-network-interfaces --filters Name=description,Values="app/gwlbapp1-ALB/624b6c0a7903f815" --query 'NetworkInterfaces[*].PrivateIpAddresses[*].PrivateIpAddress' --output text
-
-aws elbv2 describe-load-balancers --names gwlbapp1-ALB
