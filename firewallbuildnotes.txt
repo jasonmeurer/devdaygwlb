@@ -1,0 +1,71 @@
+firewall build notes
+
+get ami
+ami-0073e5cfb0d4d3b28
+add instance parameter
+map instance parameter to appliance yaml
+put mgmt into bastion subnet
+dataplane in GWLB subnet
+bootstrap basic 
+add content to bootstrap
+
+
+op-command-modes=jumbo-frame,mgmt-interface-swap;plugin-op-commands=aws-gwlb-inspect:enable;op-cmd-dpdk-pkt-io=on;dhcp-send-hostname=yes;dhcp-send-client-id=yes;dhcp-accept-server-hostname=yes;dhcp-accept-server-domain=yes
+
+
+GWLBFW1:
+    Type: AWS::EC2::Instance
+    Properties:
+      DisableApiTermination: false
+      InstanceInitiatedShutdownBehavior: stop
+      EbsOptimized: true
+      ImageId: !Ref FirewallAmiID
+      InstanceType: !Ref VMSeriesInstanceType
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            DeleteOnTermination: true
+            VolumeSize: 60
+      KeyName: !Ref EC2KeyPair
+      Monitoring: false
+      Tags:
+        - Key: Name
+          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'gwlbFW-1'] ]
+      NetworkInterfaces:
+        - SubnetId: !Ref NatgwSubnet1
+          GroupSet
+          DeviceIndex: '1'
+        - SubnetId: !Ref ApplianceSubnet1
+          DeviceIndex: '0'
+      IamInstanceProfile: !If [BootstrapVmseries, !Ref VmseriesBootstrapInstanceProfile, ""]
+      UserData:  !If
+        - BootstrapVmseries
+        - !Base64
+          Fn::Join:
+            - ''
+            - - vmseries-bootstrap-aws-s3bucket=
+              - !Ref VmseriesBootstrapS3BucketName
+        - !Base64
+          Fn::Join:
+            - ';'
+            - - type=dhcp-client
+              - ip-address=
+              - default-gateway=
+              - netmask=
+              - ipv6-default-gateway=
+              - vm-auth-key=
+              - panorama-server=
+              - panorama-server-2=
+              - tplname=
+              - dgname=
+              - dns-primary=
+              - dns-secondary=
+              - authcodes=
+              - op-command-modes=jumbo-frame,mgmt-interface-swap
+              - plugin-op-commands=aws-gwlb-inspect:enable
+              - op-cmd-dpdk-pkt-io=on
+              - dhcp-send-hostname=yes
+              - dhcp-send-client-id=yes
+              - dhcp-accept-server-hostname=yes
+              - dhcp-accept-server-domain=yes

@@ -218,12 +218,12 @@ Parameters:
       account and can have a maximum of 32 alphanumeric characters and 
       hyphens. A name cannot begin or end with a hyphen.
     Type: String
-    Default: gwlb1
+    Default: gwlb
     ConstraintDescription: Must be a valid GWLB Name
   TargetGroupName:
     Description: Target Group Name
     Type: String
-    Default: gwlb1-tg1
+    Default: gwlb1-tg
     ConstraintDescription: Must be a valid target group name
   HealthProtocol:
     Description: >-
@@ -239,7 +239,25 @@ Parameters:
       on targets. Default is 80.
     Type: String
     Default: '80'
-    ConstraintDescription: Must be a valid health check port    
+    ConstraintDescription: Must be a valid health check port   
+  StackShortName:
+    Description: >- 
+      GWLB shortname
+    Type: String
+  FirewallAmiID:
+    Description: >- 
+      Firewall AMI ID
+    Type: String
+  VMSeriesInstanceType:  
+    Description: >- 
+      Firewall Instance model
+    Type: String
+  VmseriesBootstrapS3BucketName:
+    Description: >- 
+      Firewall Bootstrap Bucket
+    Type: String  
+  
+
 
 Resources:
 
@@ -526,7 +544,7 @@ Resources:
           IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-        - CidrIp: !Ref VpcCidr
+        - CidrIp: 0.0.0.0/0
           IpProtocol: "-1"
           FromPort: -1
           ToPort: -1          
@@ -574,191 +592,191 @@ Resources:
       Roles:
         - !Ref ApplianceRole
 
-  Appliance1:
-    DependsOn: 
-      - Gwlb
-      - ApplianceRtb1Natgw1Route
-    Type: AWS::EC2::Instance
-    Properties:
-      ImageId: !Ref ApplianceInstanceAmiId
-      KeyName: !Ref KeyPairName
-      InstanceType: !Ref ApplianceInstanceType
-      IamInstanceProfile: !Ref ApplianceProfile
-      SecurityGroupIds:
-        - !Ref ApplianceSg
-      SubnetId: !Ref ApplianceSubnet1
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeSize: !Ref ApplianceInstanceDiskSize
-      Tags:
-        - Key: Name
-          Value: !Sub "${AWS::StackName}-appliance-1"
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash -ex
+  # Appliance1:
+  #   DependsOn: 
+  #     - Gwlb
+  #     - ApplianceRtb1Natgw1Route
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     ImageId: !Ref ApplianceInstanceAmiId
+  #     KeyName: !Ref KeyPairName
+  #     InstanceType: !Ref ApplianceInstanceType
+  #     IamInstanceProfile: !Ref ApplianceProfile
+  #     SecurityGroupIds:
+  #       - !Ref ApplianceSg
+  #     SubnetId: !Ref ApplianceSubnet1
+  #     BlockDeviceMappings:
+  #       - DeviceName: /dev/xvda
+  #         Ebs:
+  #           VolumeSize: !Ref ApplianceInstanceDiskSize
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub "${AWS::StackName}-appliance-1"
+  #     UserData:
+  #       Fn::Base64: !Sub |
+  #         #!/bin/bash -ex
           
-          # Install packages:
-          yum update -y;
-          yum install jq -y;
-          yum install httpd -y;
-          yum install htop -y;
-          yum install iptables-services -y;
+  #         # Install packages:
+  #         yum update -y;
+  #         yum install jq -y;
+  #         yum install httpd -y;
+  #         yum install htop -y;
+  #         yum install iptables-services -y;
           
-          # Enable IP Forwarding and persist across reboot:
-          # sysctl -w net.ipv4.ip_forward=1;
-          echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.d/00-defaults.conf
-          sysctl -p /etc/sysctl.d/00-defaults.conf          
+  #         # Enable IP Forwarding and persist across reboot:
+  #         # sysctl -w net.ipv4.ip_forward=1;
+  #         echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.d/00-defaults.conf
+  #         sysctl -p /etc/sysctl.d/00-defaults.conf          
 
-          # Configure hostname:
-          hostnamectl set-hostname ${AWS::StackName}-appliance1;
+  #         # Configure hostname:
+  #         hostnamectl set-hostname ${AWS::StackName}-appliance1;
           
-          # Configure SSH client alive interval for ssh session timeout:
-          echo 'ClientAliveInterval 60' | sudo tee --append /etc/ssh/sshd_config;
-          service sshd restart;
+  #         # Configure SSH client alive interval for ssh session timeout:
+  #         echo 'ClientAliveInterval 60' | sudo tee --append /etc/ssh/sshd_config;
+  #         service sshd restart;
           
-          # Set dark background for vim:
-          touch /home/ec2-user/.vimrc;
-          echo "set background=dark" >> /home/ec2-user/.vimrc;
+  #         # Set dark background for vim:
+  #         touch /home/ec2-user/.vimrc;
+  #         echo "set background=dark" >> /home/ec2-user/.vimrc;
 
-          # Define variables:
-          curl --silent http://169.254.169.254/latest/dynamic/instance-identity/document > /home/ec2-user/iid;
-          export instance_interface=$(curl --silent http://169.254.169.254/latest/meta-data/network/interfaces/macs/);
-          export instance_vpcid=$(curl --silent http://169.254.169.254/latest/meta-data/network/interfaces/macs/$instance_interface/vpc-id);
-          export instance_az=$(cat /home/ec2-user/iid |grep 'availability' | awk -F': ' '{print $2}' | awk -F',' '{print $1}');
-          export instance_ip=$(cat /home/ec2-user/iid |grep 'privateIp' | awk -F': ' '{print $2}' | awk -F',' '{print $1}' | awk -F'"' '{print$2}');
-          export instance_region=$(cat /home/ec2-user/iid |grep 'region' | awk -F': ' '{print $2}' | awk -F',' '{print $1}' | awk -F'"' '{print$2}');
-          export gwlb_ip=$(aws --region $instance_region ec2 describe-network-interfaces --filters Name=vpc-id,Values=$instance_vpcid | jq ' .NetworkInterfaces[] | select(.AvailabilityZone=='$instance_az') | select(.InterfaceType=="gateway_load_balancer") |.PrivateIpAddress' -r);
+  #         # Define variables:
+  #         curl --silent http://169.254.169.254/latest/dynamic/instance-identity/document > /home/ec2-user/iid;
+  #         export instance_interface=$(curl --silent http://169.254.169.254/latest/meta-data/network/interfaces/macs/);
+  #         export instance_vpcid=$(curl --silent http://169.254.169.254/latest/meta-data/network/interfaces/macs/$instance_interface/vpc-id);
+  #         export instance_az=$(cat /home/ec2-user/iid |grep 'availability' | awk -F': ' '{print $2}' | awk -F',' '{print $1}');
+  #         export instance_ip=$(cat /home/ec2-user/iid |grep 'privateIp' | awk -F': ' '{print $2}' | awk -F',' '{print $1}' | awk -F'"' '{print$2}');
+  #         export instance_region=$(cat /home/ec2-user/iid |grep 'region' | awk -F': ' '{print $2}' | awk -F',' '{print $1}' | awk -F'"' '{print$2}');
+  #         export gwlb_ip=$(aws --region $instance_region ec2 describe-network-interfaces --filters Name=vpc-id,Values=$instance_vpcid | jq ' .NetworkInterfaces[] | select(.AvailabilityZone=='$instance_az') | select(.InterfaceType=="gateway_load_balancer") |.PrivateIpAddress' -r);
 
-          # Start http and configure index.html:
-          systemctl start httpd;
-          touch /var/www/html/index.html;
-          echo "<html>" >> /var/www/html/index.html
-          echo "  <head>" >> /var/www/html/index.html
-          echo "    <title>Gateway Load Balancer POC</title>" >> /var/www/html/index.html
-          echo "    <meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1'>" >> /var/www/html/index.html
-          echo "  </head>" >> /var/www/html/index.html
-          echo "  <body>" >> /var/www/html/index.html
-          echo "    <h1>Welcome to Gateway Load Balancer POC:</h1>" >> /var/www/html/index.html
-          echo "    <h2>This is appliance running in $instance_az. Happy testing!</h2>" >> /var/www/html/index.html
-          echo "  </body>" >> /var/www/html/index.html
-          echo "</html>" >> /var/www/html/index.html
+  #         # Start http and configure index.html:
+  #         systemctl start httpd;
+  #         touch /var/www/html/index.html;
+  #         echo "<html>" >> /var/www/html/index.html
+  #         echo "  <head>" >> /var/www/html/index.html
+  #         echo "    <title>Gateway Load Balancer POC</title>" >> /var/www/html/index.html
+  #         echo "    <meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1'>" >> /var/www/html/index.html
+  #         echo "  </head>" >> /var/www/html/index.html
+  #         echo "  <body>" >> /var/www/html/index.html
+  #         echo "    <h1>Welcome to Gateway Load Balancer POC:</h1>" >> /var/www/html/index.html
+  #         echo "    <h2>This is appliance running in $instance_az. Happy testing!</h2>" >> /var/www/html/index.html
+  #         echo "  </body>" >> /var/www/html/index.html
+  #         echo "</html>" >> /var/www/html/index.html
 
-          # Start and configure iptables:
-          systemctl enable iptables;
-          systemctl start iptables;
+  #         # Start and configure iptables:
+  #         systemctl enable iptables;
+  #         systemctl start iptables;
           
-          # Configuration below allows allows all traffic:
-          # Set the default policies for each of the built-in chains to ACCEPT:
-          iptables -P INPUT ACCEPT;
-          iptables -P FORWARD ACCEPT;
-          iptables -P OUTPUT ACCEPT;
+  #         # Configuration below allows allows all traffic:
+  #         # Set the default policies for each of the built-in chains to ACCEPT:
+  #         iptables -P INPUT ACCEPT;
+  #         iptables -P FORWARD ACCEPT;
+  #         iptables -P OUTPUT ACCEPT;
 
-          # Flush the nat and mangle tables, flush all chains (-F), and delete all non-default chains (-X):
-          iptables -t nat -F;
-          iptables -t mangle -F;
-          iptables -F;
-          iptables -X;
+  #         # Flush the nat and mangle tables, flush all chains (-F), and delete all non-default chains (-X):
+  #         iptables -t nat -F;
+  #         iptables -t mangle -F;
+  #         iptables -F;
+  #         iptables -X;
 
-          # Configure nat table to hairpin traffic back to GWLB:
-          iptables -t nat -A PREROUTING -p udp -s $gwlb_ip -d $instance_ip -i eth0 -j DNAT --to-destination $gwlb_ip:6081;
-          iptables -t nat -A POSTROUTING -p udp --dport 6081 -s $gwlb_ip -d $gwlb_ip -o eth0 -j MASQUERADE;
+  #         # Configure nat table to hairpin traffic back to GWLB:
+  #         iptables -t nat -A PREROUTING -p udp -s $gwlb_ip -d $instance_ip -i eth0 -j DNAT --to-destination $gwlb_ip:6081;
+  #         iptables -t nat -A POSTROUTING -p udp --dport 6081 -s $gwlb_ip -d $gwlb_ip -o eth0 -j MASQUERADE;
 
-          # Save iptables:
-          service iptables save;
+  #         # Save iptables:
+  #         service iptables save;
 
-  Appliance2:
-    DependsOn: 
-      - Gwlb
-      - ApplianceRtb2Natgw2Route  
-    Type: AWS::EC2::Instance
-    Properties:
-      ImageId: !Ref ApplianceInstanceAmiId
-      KeyName: !Ref KeyPairName
-      InstanceType: !Ref ApplianceInstanceType
-      IamInstanceProfile: !Ref ApplianceProfile
-      SecurityGroupIds:
-        - !Ref ApplianceSg
-      SubnetId: !Ref ApplianceSubnet2
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeSize: !Ref ApplianceInstanceDiskSize
-      Tags:
-        - Key: Name
-          Value: !Sub "${AWS::StackName}-appliance-2"
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash -ex
+  # Appliance2:
+  #   DependsOn: 
+  #     - Gwlb
+  #     - ApplianceRtb2Natgw2Route  
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     ImageId: !Ref ApplianceInstanceAmiId
+  #     KeyName: !Ref KeyPairName
+  #     InstanceType: !Ref ApplianceInstanceType
+  #     IamInstanceProfile: !Ref ApplianceProfile
+  #     SecurityGroupIds:
+  #       - !Ref ApplianceSg
+  #     SubnetId: !Ref ApplianceSubnet2
+  #     BlockDeviceMappings:
+  #       - DeviceName: /dev/xvda
+  #         Ebs:
+  #           VolumeSize: !Ref ApplianceInstanceDiskSize
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub "${AWS::StackName}-appliance-2"
+  #     UserData:
+  #       Fn::Base64: !Sub |
+  #         #!/bin/bash -ex
           
-          # Install packages:
-          yum update -y;
-          yum install jq -y;
-          yum install httpd -y;
-          yum install htop -y;
-          yum install iptables-services -y;
+  #         # Install packages:
+  #         yum update -y;
+  #         yum install jq -y;
+  #         yum install httpd -y;
+  #         yum install htop -y;
+  #         yum install iptables-services -y;
           
-          # Enable IP Forwarding and persist across reboot:
-          # sysctl -w net.ipv4.ip_forward=1;
-          echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.d/00-defaults.conf
-          sysctl -p /etc/sysctl.d/00-defaults.conf
+  #         # Enable IP Forwarding and persist across reboot:
+  #         # sysctl -w net.ipv4.ip_forward=1;
+  #         echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.d/00-defaults.conf
+  #         sysctl -p /etc/sysctl.d/00-defaults.conf
 
-          # Configure hostname:
-          hostnamectl set-hostname ${AWS::StackName}-appliance2;
+  #         # Configure hostname:
+  #         hostnamectl set-hostname ${AWS::StackName}-appliance2;
           
-          # Configure SSH client alive interval for ssh session timeout:
-          echo 'ClientAliveInterval 60' | sudo tee --append /etc/ssh/sshd_config;
-          service sshd restart;
+  #         # Configure SSH client alive interval for ssh session timeout:
+  #         echo 'ClientAliveInterval 60' | sudo tee --append /etc/ssh/sshd_config;
+  #         service sshd restart;
           
-          # Set dark background for vim:
-          touch /home/ec2-user/.vimrc;
-          echo "set background=dark" >> /home/ec2-user/.vimrc;
+  #         # Set dark background for vim:
+  #         touch /home/ec2-user/.vimrc;
+  #         echo "set background=dark" >> /home/ec2-user/.vimrc;
 
-          # Define variables:
-          curl --silent http://169.254.169.254/latest/dynamic/instance-identity/document > /home/ec2-user/iid;
-          export instance_interface=$(curl --silent http://169.254.169.254/latest/meta-data/network/interfaces/macs/);
-          export instance_vpcid=$(curl --silent http://169.254.169.254/latest/meta-data/network/interfaces/macs/$instance_interface/vpc-id);
-          export instance_az=$(cat /home/ec2-user/iid |grep 'availability' | awk -F': ' '{print $2}' | awk -F',' '{print $1}');
-          export instance_ip=$(cat /home/ec2-user/iid |grep 'privateIp' | awk -F': ' '{print $2}' | awk -F',' '{print $1}' | awk -F'"' '{print$2}');
-          export instance_region=$(cat /home/ec2-user/iid |grep 'region' | awk -F': ' '{print $2}' | awk -F',' '{print $1}' | awk -F'"' '{print$2}');
-          export gwlb_ip=$(aws --region $instance_region ec2 describe-network-interfaces --filters Name=vpc-id,Values=$instance_vpcid | jq ' .NetworkInterfaces[] | select(.AvailabilityZone=='$instance_az') | select(.InterfaceType=="gateway_load_balancer") |.PrivateIpAddress' -r);
+  #         # Define variables:
+  #         curl --silent http://169.254.169.254/latest/dynamic/instance-identity/document > /home/ec2-user/iid;
+  #         export instance_interface=$(curl --silent http://169.254.169.254/latest/meta-data/network/interfaces/macs/);
+  #         export instance_vpcid=$(curl --silent http://169.254.169.254/latest/meta-data/network/interfaces/macs/$instance_interface/vpc-id);
+  #         export instance_az=$(cat /home/ec2-user/iid |grep 'availability' | awk -F': ' '{print $2}' | awk -F',' '{print $1}');
+  #         export instance_ip=$(cat /home/ec2-user/iid |grep 'privateIp' | awk -F': ' '{print $2}' | awk -F',' '{print $1}' | awk -F'"' '{print$2}');
+  #         export instance_region=$(cat /home/ec2-user/iid |grep 'region' | awk -F': ' '{print $2}' | awk -F',' '{print $1}' | awk -F'"' '{print$2}');
+  #         export gwlb_ip=$(aws --region $instance_region ec2 describe-network-interfaces --filters Name=vpc-id,Values=$instance_vpcid | jq ' .NetworkInterfaces[] | select(.AvailabilityZone=='$instance_az') | select(.InterfaceType=="gateway_load_balancer") |.PrivateIpAddress' -r);
 
-          # Start httpd and configure index.html:
-          systemctl start httpd;
-          touch /var/www/html/index.html;
-          echo "<html>" >> /var/www/html/index.html
-          echo "  <head>" >> /var/www/html/index.html
-          echo "    <title>Gateway Load Balancer POC</title>" >> /var/www/html/index.html
-          echo "    <meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1'>" >> /var/www/html/index.html
-          echo "  </head>" >> /var/www/html/index.html
-          echo "  <body>" >> /var/www/html/index.html
-          echo "    <h1>Welcome to Gateway Load Balancer POC:</h1>" >> /var/www/html/index.html
-          echo "    <h2>This is appliance running in $instance_az. Happy testing!</h2>" >> /var/www/html/index.html
-          echo "  </body>" >> /var/www/html/index.html
-          echo "</html>" >> /var/www/html/index.html
+  #         # Start httpd and configure index.html:
+  #         systemctl start httpd;
+  #         touch /var/www/html/index.html;
+  #         echo "<html>" >> /var/www/html/index.html
+  #         echo "  <head>" >> /var/www/html/index.html
+  #         echo "    <title>Gateway Load Balancer POC</title>" >> /var/www/html/index.html
+  #         echo "    <meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1'>" >> /var/www/html/index.html
+  #         echo "  </head>" >> /var/www/html/index.html
+  #         echo "  <body>" >> /var/www/html/index.html
+  #         echo "    <h1>Welcome to Gateway Load Balancer POC:</h1>" >> /var/www/html/index.html
+  #         echo "    <h2>This is appliance running in $instance_az. Happy testing!</h2>" >> /var/www/html/index.html
+  #         echo "  </body>" >> /var/www/html/index.html
+  #         echo "</html>" >> /var/www/html/index.html
 
-          # Start and configure iptables:
-          systemctl enable iptables;
-          systemctl start iptables;
+  #         # Start and configure iptables:
+  #         systemctl enable iptables;
+  #         systemctl start iptables;
 
-          # Configuration below allows allows all traffic:
-          # Set the default policies for each of the built-in chains to ACCEPT:
-          iptables -P INPUT ACCEPT;
-          iptables -P FORWARD ACCEPT;
-          iptables -P OUTPUT ACCEPT;
+  #         # Configuration below allows allows all traffic:
+  #         # Set the default policies for each of the built-in chains to ACCEPT:
+  #         iptables -P INPUT ACCEPT;
+  #         iptables -P FORWARD ACCEPT;
+  #         iptables -P OUTPUT ACCEPT;
 
-          # Flush the nat and mangle tables, flush all chains (-F), and delete all non-default chains (-X):
-          iptables -t nat -F;
-          iptables -t mangle -F;
-          iptables -F;
-          iptables -X;
+  #         # Flush the nat and mangle tables, flush all chains (-F), and delete all non-default chains (-X):
+  #         iptables -t nat -F;
+  #         iptables -t mangle -F;
+  #         iptables -F;
+  #         iptables -X;
 
-          # Configure nat table to hairpin traffic back to GWLB:
-          iptables -t nat -A PREROUTING -p udp -s $gwlb_ip -d $instance_ip -i eth0 -j DNAT --to-destination $gwlb_ip:6081;
-          iptables -t nat -A POSTROUTING -p udp --dport 6081 -s $gwlb_ip -d $gwlb_ip -o eth0 -j MASQUERADE;
+  #         # Configure nat table to hairpin traffic back to GWLB:
+  #         iptables -t nat -A PREROUTING -p udp -s $gwlb_ip -d $instance_ip -i eth0 -j DNAT --to-destination $gwlb_ip:6081;
+  #         iptables -t nat -A POSTROUTING -p udp --dport 6081 -s $gwlb_ip -d $gwlb_ip -o eth0 -j MASQUERADE;
 
-          # Save iptables:
-          service iptables save;
+  #         # Save iptables:
+  #         service iptables save;
 
 # Create Bastion Host:
 # Bastion host is being created in one AZ (AZ1) only.
@@ -805,19 +823,31 @@ Resources:
   Gwlb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: !Ref GwlbName
+      Name: !Join 
+        - '-'
+        - - !Ref StackShortName
+          - !Ref GwlbName
       Type: gateway
+      LoadBalancerAttributes:
+        - Key: load_balancing.cross_zone.enabled
+          Value: true      
       Subnets:
         - !Ref ApplianceSubnet1
         - !Ref ApplianceSubnet2
       Tags:
       - Key: Name
-        Value: !Sub "${AWS::StackName}-gwlb-1"
+        Value: !Join 
+          - '-'
+          - - !Ref StackShortName
+            - !Ref GwlbName
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Ref TargetGroupName
+      Name: !Join 
+        - '-'
+        - - !Ref StackShortName
+          - !Ref TargetGroupName
       Port: 6081
       Protocol: GENEVE
       TargetGroupAttributes:
@@ -828,11 +858,13 @@ Resources:
       HealthCheckProtocol: !Ref HealthProtocol
       TargetType: instance
       Targets:
-        - Id: !Ref Appliance1
-        - Id: !Ref Appliance2
+        - Id: !Ref GWLBFW1
       Tags:
       - Key: Name
-        Value: !Sub "${AWS::StackName}-gwlbtg-1"
+        Value: !Join 
+          - '-'
+          - - !Ref StackShortName
+            - !Ref GwlbName
 
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -1070,6 +1102,142 @@ Resources:
       VpcEndpointId: !Ref GwlbEndpoint2
       RouteTableId: !Ref TgwAttachRouteTable2
 
+#   VM-Series Bootstrap IAM Role
+
+  VmseriesBootstrapRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: VmseriesBootstrapRolePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Join
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - !Ref VmseriesBootstrapS3BucketName
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Join
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - !Ref VmseriesBootstrapS3BucketName
+                    - /*
+              - Effect: Allow
+                Action:
+                  - cloudwatch:*
+                Resource:
+                  - '*'
+
+  VmseriesBootstrapInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref VmseriesBootstrapRole  
+        
+# Firewall Networking
+
+  VMSeriesManagementENIAZ1:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Description: VM-Series Management - AZ1
+      GroupSet: [ !Ref ApplianceSg ]
+      SubnetId: !Ref NatgwSubnet1
+      Tags:
+        - Key: Name
+          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeriesManagement-AZ1'] ]
+
+  VMSeriesManagementEIPAZ1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeriesManagement-AZ1'] ]
+
+  VMSeriesManagementEIPAssociationAZ1:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt VMSeriesManagementEIPAZ1.AllocationId
+      NetworkInterfaceId: !Ref VMSeriesManagementENIAZ1
+
+  VMSeriesDataENIAZ1:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Description: VM-Series Data - AZ1
+      SourceDestCheck: No
+      GroupSet: [ !Ref ApplianceSg ]
+      SubnetId: !Ref ApplianceSubnet1
+      Tags:
+        - Key: Name
+          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeries-Data-AZ1'] ]
+        
+# Create Firewall  
+
+  GWLBFW1:
+    Type: AWS::EC2::Instance
+    Properties:
+      DisableApiTermination: false
+      InstanceInitiatedShutdownBehavior: stop
+      EbsOptimized: true
+      ImageId: !Ref FirewallAmiID
+      InstanceType: !Ref VMSeriesInstanceType
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            DeleteOnTermination: true
+            VolumeSize: 60
+      KeyName: !Ref KeyPairName
+      Monitoring: false
+      Tags:
+        - Key: Name
+          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'gwlbFW-1'] ]
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref VMSeriesManagementENIAZ1
+          DeviceIndex: '1'
+        - NetworkInterfaceId: !Ref VMSeriesDataENIAZ1
+          DeviceIndex: '0'
+      IamInstanceProfile: !Ref VmseriesBootstrapInstanceProfile
+      UserData:  !Base64
+        Fn::Join:
+          - ''
+          - - vmseries-bootstrap-aws-s3bucket=
+            - !Ref VmseriesBootstrapS3BucketName
+        # Fn::Join:
+        #   - ';'
+        #   - - type=dhcp-client
+        #     - ip-address=
+        #     - default-gateway=
+        #     - netmask=
+        #     - ipv6-default-gateway=
+        #     - vm-auth-key=
+        #     - panorama-server=
+        #     - panorama-server-2=
+        #     - tplname=
+        #     - dgname=
+        #     - dns-primary=
+        #     - dns-secondary=
+        #     - authcodes=
+        #     - op-command-modes=jumbo-frame,mgmt-interface-swap
+        #     - plugin-op-commands=aws-gwlb-inspect:enable
+        #     - op-cmd-dpdk-pkt-io=on
+        #     - dhcp-send-hostname=yes
+        #     - dhcp-send-client-id=yes
+        #     - dhcp-accept-server-hostname=yes
+        #     - dhcp-accept-server-domain=yes
+
 Outputs:
   ApplianceVpcCidr:
     Description: Appliance VPC CIDR
@@ -1077,12 +1245,12 @@ Outputs:
   ApplianceVpcId:
     Description: Appliance VPC ID
     Value: !Ref Vpc
-  Appliance1PrivateIp:
-    Description: Appliance VPC Appliance1's private IP
-    Value: !GetAtt Appliance1.PrivateIp
-  Appliance2PrivateIp:
-    Description: Appliance VPC Appliance2's private IP
-    Value: !GetAtt Appliance2.PrivateIp
+  # Appliance1PrivateIp:
+  #   Description: Appliance VPC Appliance1's private IP
+  #   Value: !GetAtt Appliance1.PrivateIp
+  # Appliance2PrivateIp:
+  #   Description: Appliance VPC Appliance2's private IP
+  #   Value: !GetAtt Appliance2.PrivateIp
   ApplianceBastionHostPublicIp:
     Description: Appliance VPC Bastion Instance Public IP
     Value: !GetAtt BastionHost.PublicIp
