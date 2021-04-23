@@ -1266,3 +1266,9 @@ Outputs:
   ApplianceRtb2Id:
     Description: Appliance VPC gwlb-rtb2's id
     Value: !Ref ApplianceRouteTable2
+  GWLBServiceName:
+    Description: GWLB Service Name
+    Value: !GetAtt RetrieveVpceServiceName.ServiceName
+  FWmgmtEIP:
+    Description: Firewall Managmment IP
+    Value: !Ref VMSeriesManagementEIPAZ1
