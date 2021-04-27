@@ -370,7 +370,14 @@ Parameters:
     Default: 10.0.1.144/28
     Description: Spoke2 VPC - Bastion Subnet 2 CIDR in Availability Zone 2
     Type: String
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28      
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28 
+  FirewallRedundant:
+    Description: Should the template deploy redundant firewalls.
+    Type: String
+    Default: 'yes'
+    AllowedValues:
+      - 'yes'
+      - 'no'
   FirewallAmiID:
     Description: Firewall AMI
     Type: String
@@ -450,6 +457,7 @@ Resources:
         VMSeriesInstanceType: !Ref VMSeriesInstanceType
         FirewallAmiID: !Ref FirewallAmiID
         VmseriesBootstrapS3BucketName: !Ref VmseriesBootstrapS3BucketName
+        FirewallRedundant: !Ref FirewallRedundant
 
   Spoke1VpcStackDB:
     Type: AWS::CloudFormation::Stack

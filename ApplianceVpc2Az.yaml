@@ -240,6 +240,12 @@ Parameters:
     Type: String
     Default: '80'
     ConstraintDescription: Must be a valid health check port   
+  FirewallRedundant:
+    Description: Should the template deploy redundant firewalls.
+    Type: String
+    AllowedValues:
+      - 'yes'
+      - 'no'
   StackShortName:
     Description: >- 
       GWLB shortname
@@ -257,7 +263,8 @@ Parameters:
       Firewall Bootstrap Bucket
     Type: String  
   
-
+Conditions:
+  isFT: !Equals [ !Ref FirewallRedundant, 'yes']
 
 Resources:
 
@@ -859,6 +866,7 @@ Resources:
       TargetType: instance
       Targets:
         - Id: !Ref GWLBFW1
+        - Id: !If [isFT, !Ref GWLBFW2, !Ref "AWS::NoValue"]
       Tags:
       - Key: Name
         Value: !Join 
@@ -1146,7 +1154,7 @@ Resources:
       Roles:
         - !Ref VmseriesBootstrapRole  
         
-# Firewall Networking
+# Firewall Networking AZ1
 
   VMSeriesManagementENIAZ1:
     Type: AWS::EC2::NetworkInterface
@@ -1182,6 +1190,47 @@ Resources:
       Tags:
         - Key: Name
           Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeries-Data-AZ1'] ]
+          
+# Firewall Networking AZ2
+
+  VMSeriesManagementENIAZ2:
+    Type: AWS::EC2::NetworkInterface
+    Condition: isFT
+    Properties:
+      Description: VM-Series Management - AZ2
+      GroupSet: [ !Ref ApplianceSg ]
+      SubnetId: !Ref NatgwSubnet2
+      Tags:
+        - Key: Name
+          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeriesManagement-AZ2'] ]
+
+  VMSeriesManagementEIPAZ2:
+    Type: AWS::EC2::EIP
+    Condition: isFT
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeriesManagement-AZ2'] ]
+
+  VMSeriesManagementEIPAssociationAZ2:
+    Type: AWS::EC2::EIPAssociation
+    Condition: isFT
+    Properties:
+      AllocationId: !GetAtt VMSeriesManagementEIPAZ2.AllocationId
+      NetworkInterfaceId: !Ref VMSeriesManagementENIAZ2
+
+  VMSeriesDataENIAZ2:
+    Type: AWS::EC2::NetworkInterface
+    Condition: isFT
+    Properties:
+      Description: VM-Series Data - AZ2
+      SourceDestCheck: No
+      GroupSet: [ !Ref ApplianceSg ]
+      SubnetId: !Ref ApplianceSubnet2
+      Tags:
+        - Key: Name
+          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeries-Data-AZ2'] ]          
         
 # Create Firewall  
 
@@ -1237,6 +1286,61 @@ Resources:
         #     - dhcp-send-client-id=yes
         #     - dhcp-accept-server-hostname=yes
         #     - dhcp-accept-server-domain=yes
+        
+
+  GWLBFW2:
+    Type: AWS::EC2::Instance
+    Condition: isFT
+    Properties:
+      DisableApiTermination: false
+      InstanceInitiatedShutdownBehavior: stop
+      EbsOptimized: true
+      ImageId: !Ref FirewallAmiID
+      InstanceType: !Ref VMSeriesInstanceType
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            DeleteOnTermination: true
+            VolumeSize: 60
+      KeyName: !Ref KeyPairName
+      Monitoring: false
+      Tags:
+        - Key: Name
+          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'gwlbFW-2'] ]
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref VMSeriesManagementENIAZ2
+          DeviceIndex: '1'
+        - NetworkInterfaceId: !Ref VMSeriesDataENIAZ2
+          DeviceIndex: '0'
+      IamInstanceProfile: !Ref VmseriesBootstrapInstanceProfile
+      UserData:  !Base64
+        Fn::Join:
+          - ''
+          - - vmseries-bootstrap-aws-s3bucket=
+            - !Ref VmseriesBootstrapS3BucketName
+        # Fn::Join:
+        #   - ';'
+        #   - - type=dhcp-client
+        #     - ip-address=
+        #     - default-gateway=
+        #     - netmask=
+        #     - ipv6-default-gateway=
+        #     - vm-auth-key=
+        #     - panorama-server=
+        #     - panorama-server-2=
+        #     - tplname=
+        #     - dgname=
+        #     - dns-primary=
+        #     - dns-secondary=
+        #     - authcodes=
+        #     - op-command-modes=jumbo-frame,mgmt-interface-swap
+        #     - plugin-op-commands=aws-gwlb-inspect:enable
+        #     - op-cmd-dpdk-pkt-io=on
+        #     - dhcp-send-hostname=yes
+        #     - dhcp-send-client-id=yes
+        #     - dhcp-accept-server-hostname=yes
+        #     - dhcp-accept-server-domain=yes        
 
 Outputs:
   ApplianceVpcCidr:
@@ -1269,6 +1373,10 @@ Outputs:
   GWLBServiceName:
     Description: GWLB Service Name
     Value: !GetAtt RetrieveVpceServiceName.ServiceName
-  FWmgmtEIP:
-    Description: Firewall Managmment IP
+  FW1mgmtEIP:
+    Description: Firewall 1 Managmment IP
     Value: !Ref VMSeriesManagementEIPAZ1
+  FW2mgmtEIP:
+    Description: Firewall 2 Managmment IP
+    Condition: isFT
+    Value: !Ref VMSeriesManagementEIPAZ2   

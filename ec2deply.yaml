@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  Deploy a couple of sample instances to generate traffic
+  
+Parameters:
+  AvailabilityZone1:
+    Description: Select a Zone that the GWLB is currently deployed in
+    Type: AWS::EC2::AvailabilityZone::Name
+    ConstraintDescription: Valid Availability Zone Id   
+  InstanceSubnet1:
+    Description: Select the Application Subnet in the Zone previously selected
+    Type: AWS::EC2::Subnet::Id
+    ConstraintDescription: Valid Subnet ID 
+  InstanceSecurityGroup:
+    Description: Select the Application Security Group
+    Type: AWS::EC2::SecurityGroup::Id
+    ConstraintDescription: Valid Security Group ID
+  InstanceType:
+    Description: Select EC2 instance type for Application instance. Default is set to t3.micro
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+    Type: String  
+  EC2UbuntuAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: '/aws/service/canonical/ubuntu/server/18.04/stable/current/amd64/hvm/ebs-gp2/ami-id' 
+  KeyPairName:
+    Description: EC2 KeyPair required for accessing EC2 instance
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair
+    
+Resources:
+  Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref EC2UbuntuAmiId
+      KeyName: !Ref KeyPairName
+      InstanceType: !Ref InstanceType
+      # PrivateIpAddress: 
+      NetworkInterfaces:
+        - GroupSet:
+            - !Ref InstanceSecurityGroup
+          SubnetId: !Ref InstanceSubnet1
+          DeviceIndex: "0"
+          AssociatePublicIpAddress: "false"
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-automated-prod"
+        - Key: Environment
+          Value: prod
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -ex
+          until $(curl --output /dev/null --silent --head --fail "http://neverssl.com"); do
+            sleep 10s
+          done &&
+          sudo apt-get update &&
+          sudo useradd -m -p \$6\$X5k5hov4qqbZlAk\$4Blp9aRxz8FX4.XDKaq0pYJe8JWGP68G8ZNnxCrr.HuaaUnfRMGBkAVOgP7VWadsNc5R7V2pUUKk4s81Zb0D3. -G admin,ssh awsuser &&
+          sudo systemctl restart serial-getty@ttyS0 &&
+          sudo git config --global http.lowSpeedLimit 1000000 &&
+          sudo git config --global http.lowSpeedTime 6 &&
+          sudo git clone https://github.com/PaloAltoNetworks/AWS-GWLB-VMSeries.git
+          echo "Done"
+  Instance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref EC2UbuntuAmiId
+      KeyName: !Ref KeyPairName
+      InstanceType: !Ref InstanceType
+      # PrivateIpAddress: 
+      NetworkInterfaces:
+        - GroupSet:
+            - !Ref InstanceSecurityGroup
+          SubnetId: !Ref InstanceSubnet1
+          DeviceIndex: "0"
+          AssociatePublicIpAddress: "false"
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-automated-dev"
+        - Key: Environment
+          Value: dev
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -ex
+          until $(curl --output /dev/null --silent --head --fail "http://neverssl.com"); do
+            sleep 10s
+          done &&
+          sudo apt-get update &&
+          sudo useradd -m -p \$6\$X5k5hov4qqbZlAk\$4Blp9aRxz8FX4.XDKaq0pYJe8JWGP68G8ZNnxCrr.HuaaUnfRMGBkAVOgP7VWadsNc5R7V2pUUKk4s81Zb0D3. -G admin,ssh awsuser &&
+          sudo systemctl restart serial-getty@ttyS0 &&
+          sudo git config --global http.lowSpeedLimit 1000000 &&
+          sudo git config --global http.lowSpeedTime 6 &&
+          sudo git clone https://github.com/PaloAltoNetworks/AWS-GWLB-VMSeries.git  
+          echo "Done"
+   
+Outputs:
+  Instance1PrivateIp:
+    Description: Prod Instance Private IP
+    Value: !GetAtt Instance1.PrivateIp
+  Instance2PrivateIp:
+    Description: Dev Instance Private IP
+    Value: !GetAtt Instance2.PrivateIp    
