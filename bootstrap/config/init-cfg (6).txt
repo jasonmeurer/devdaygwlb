@@ -1,0 +1,15 @@
+hostname=aws-fw
+type=dhcp-client
+ip-address=
+default-gateway=
+netmask=
+ipv6-address=
+ipv6-default-gateway=
+op-command-modes=jumbo-frame,mgmt-interface-swap
+op-cmd-dpdk-pkt-io=on
+plugin-op-commands=aws-gwlb-inspect:enable
+dhcp-send-hostname=yes
+dhcp-send-client-id=yes
+dhcp-accept-server-hostname=yes
+dhcp-accept-server-domain=yes
+
