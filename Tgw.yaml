@@ -176,6 +176,14 @@ Parameters:
     Default: 0.0.0.0/0
     Type: String
     ConstraintDescription: Must be a valid Network CIDR of the form x.x.x.x/y
+  stackFunction:
+    Description: >- 
+      VPC Function Name
+    Type: String  
+  StackShortName:
+    Description: >- 
+      Stack shortname
+    Type: String       
 
 Resources:
 # Create Transit Gateway:
@@ -190,7 +198,7 @@ Resources:
       DnsSupport: enable
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-tgw-1"
+          Value: !Sub "${stackFunction}-tgw-${StackShortName}"
       VpnEcmpSupport: enable
 
 # Create Transit Gateway Attachments:
@@ -204,7 +212,7 @@ Resources:
       VpcId: !Ref ApplianceVpcId
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-appliance-vpc-attachment"
+          Value: !Sub "${stackFunction}-fw-attach-${StackShortName}"
 
   Tgw1Spoke1VpcAttachment:
     Type: AWS::EC2::TransitGatewayAttachment
@@ -216,7 +224,7 @@ Resources:
       VpcId: !Ref Spoke1VpcId
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-spoke1-vpc-attachment"
+          Value: !Sub "${stackFunction}-spoke1-attach-${StackShortName}"
 
   Tgw1Spoke2VpcAttachment:
     Type: AWS::EC2::TransitGatewayAttachment
@@ -228,7 +236,7 @@ Resources:
       VpcId: !Ref Spoke2VpcId
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-spoke2-vpc-attachment"
+          Value: !Sub "${stackFunction}-spoke2-attach-${StackShortName}"
 
 # Create Transit Gateway Route Tables:
   Tgw1TransitRtb:
@@ -236,7 +244,7 @@ Resources:
     Properties: 
       Tags: 
         - Key: Name
-          Value: !Sub "${AWS::StackName}-tgw-transit-rtb"   
+          Value: !Sub "${stackFunction}-transit-rtb-${StackShortName}"
       TransitGatewayId: !Ref Tgw1
 
   Tgw1EgressRtb:
@@ -244,7 +252,7 @@ Resources:
     Properties: 
       Tags: 
         - Key: Name
-          Value: !Sub "${AWS::StackName}-tgw-egress-rtb"
+          Value: !Sub "${stackFunction}-egress-rtb-${StackShortName}"
       TransitGatewayId: !Ref Tgw1
 
 # Create Transit Gateway Attachment Associations:
@@ -383,14 +391,14 @@ Resources:
   TgwApplianceModeLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-        LogGroupName: !Sub /aws/lambda/${AWS::StackName}-tgw-appliancemode
+        LogGroupName: !Sub /aws/lambda/${stackFunction}-tgw-applianceMode-${StackShortName}
         RetentionInDays: 1
 
   TgwApplianceMode:
     Type: AWS::Lambda::Function
     DependsOn: TgwApplianceModeLogGroup
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-tgw-appliancemode
+      FunctionName: !Sub ${stackFunction}-tgw-applianceMode-${StackShortName}
       Handler: "index.handler"
       Role: !GetAtt TgwLambdaExecutionRole.Arn
       Code:

@@ -164,6 +164,14 @@ Parameters:
   EC2UbuntuAmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: '/aws/service/canonical/ubuntu/server/18.04/stable/current/amd64/hvm/ebs-gp2/ami-id'  
+  StackShortName:
+    Description: >- 
+      Stack shortname
+    Type: String
+  stackFunction:
+    Description: >- 
+      VPC Function Name
+    Type: String
 
 Resources:
 # Create VPC:
@@ -176,10 +184,11 @@ Resources:
       InstanceTenancy: default
       Tags:
         - Key: Name
-          Value: !Join
-            - ""
-            - - !Ref AWS::StackName
-              - "-vpc"
+          Value: !Sub "${stackFunction}-vpc-${StackShortName}"
+          # Value: !Join
+          #   - ""
+          #   - - !Ref AWS::StackName
+          #     - "-vpc"
 
 # Create IGW and attach to the VPC:  
   InternetGateway:
@@ -187,7 +196,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-igw"
+          Value: !Sub "${stackFunction}-igw-${StackShortName}"
   
   AttachInternetGateway:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -206,7 +215,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-bastion-subnet-1"
+          Value: !Sub "${stackFunction}-public-sn-az1-${StackShortName}"
 
   ApplicationSubnet1:
     Type: AWS::EC2::Subnet
@@ -217,7 +226,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-application-subnet-1"
+          Value: !Sub "${stackFunction}-app-sn-az1-${StackShortName}"
   
   TgwAttachSubnet1:
     Type: AWS::EC2::Subnet
@@ -228,7 +237,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-tgw-attach-subnet-1"
+          Value: !Sub "${stackFunction}-tgwAttach-sn-az1-${StackShortName}"
 
   # AZ2:
   BastionSubnet2:
@@ -240,7 +249,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-bastion-subnet-2"
+          Value: !Sub "${stackFunction}-public-sn-az2-${StackShortName}"
 
   ApplicationSubnet2:
     Type: AWS::EC2::Subnet
@@ -251,7 +260,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-application-subnet-2"
+          Value: !Sub "${stackFunction}-app-sn-az2-${StackShortName}"
 
   TgwAttachSubnet2:
     Type: AWS::EC2::Subnet
@@ -262,7 +271,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-tgw-attach-subnet-2"
+          Value: !Sub "${stackFunction}-tgwAttach-sn-az2-${StackShortName}"
 
 # Create Route Tables:
   ApplicationRouteTable:
@@ -271,7 +280,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-applicaiton-rtb"
+          Value: !Sub "${stackFunction}-app-rtb-${StackShortName}"
 
   BastionRouteTable:
     Type: AWS::EC2::RouteTable
@@ -279,7 +288,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-bastion-rtb"
+          Value: !Sub "${stackFunction}-egressIGW-rtb-${StackShortName}"
 
 # Associate Subnets with Route Tables:
   # AZ1:
@@ -334,7 +343,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref Vpc
-      GroupName: !Sub "${AWS::StackName}-application-sg"
+      GroupName: !Sub "${stackFunction}-app-sg-${StackShortName}"
       GroupDescription: >-
         Access to application instance: allow TCP, UDP and ICMP from appropriate
         location. Allow all traffic from VPC CIDR.
@@ -362,7 +371,7 @@ Resources:
           ToPort: -1
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-application-sg"
+          Value: !Sub "${stackFunction}-app-sg-${StackShortName}"
 
 # Create Application Instances:
 
@@ -382,7 +391,7 @@ Resources:
             VolumeSize: !Ref ApplicationInstanceDiskSize
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-db-instance-1"
+          Value: !Sub "${stackFunction}-instance1-${StackShortName}"
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -ex
@@ -428,7 +437,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref Vpc
-      GroupName: !Sub "${AWS::StackName}-bastion-sg"
+      GroupName: !Sub "${stackFunction}-bastion-sg-${StackShortName}"
       GroupDescription: >-
         Access to bastion instance: allow SSH and ICMP access from appropriate
         location. Allow all traffic from VPC CIDR
@@ -452,7 +461,7 @@ Resources:
           ToPort: -1
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-bastion-sg"
+          Value: !Sub "${stackFunction}-bastion-sg-${StackShortName}"
 
 # Create Bastion Host (creates only one bastion host in one AZ):
   BastionHost:
@@ -470,7 +479,7 @@ Resources:
             VolumeSize: !Ref ApplicationInstanceDiskSize
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-bastion-db-1"
+          Value: !Sub "${stackFunction}-bastion1-${StackShortName}"
       # UserData:
       #   Fn::Base64: !Sub |
       #     #!/bin/bash -ex

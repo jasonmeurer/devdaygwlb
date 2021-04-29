@@ -374,7 +374,7 @@ Parameters:
   FirewallRedundant:
     Description: Should the template deploy redundant firewalls.
     Type: String
-    Default: 'yes'
+    Default: 'no'
     AllowedValues:
       - 'yes'
       - 'no'
@@ -427,6 +427,9 @@ Parameters:
       - c5n.18xlarge
     Default: m5.xlarge    
 
+Conditions:
+  isFT: !Equals [ !Ref FirewallRedundant, 'yes']
+  
 Resources:
   ApplianceVpcStack:
     Type: AWS::CloudFormation::Stack
@@ -458,6 +461,8 @@ Resources:
         FirewallAmiID: !Ref FirewallAmiID
         VmseriesBootstrapS3BucketName: !Ref VmseriesBootstrapS3BucketName
         FirewallRedundant: !Ref FirewallRedundant
+        StackShortName: !Sub ${AWS::StackName} 
+        stackFunction: "fw"
 
   Spoke1VpcStackDB:
     Type: AWS::CloudFormation::Stack
@@ -479,6 +484,9 @@ Resources:
         ApplicationInstanceDiskSize: !Ref EC2InstanceDiskSize
         KeyPairName: !Ref KeyPairName
         AccessLocation: !Ref AccessLocation
+        StackShortName: !Sub ${AWS::StackName}    
+        stackFunction: "db"
+        
 
   Spoke2VpcStackWeb:
     Type: AWS::CloudFormation::Stack
@@ -506,6 +514,7 @@ Resources:
         AccessLocation: !Ref AccessLocation
         StackShortName: !Sub ${AWS::StackName}    
         GWLBServiceName: !GetAtt ['ApplianceVpcStack', 'Outputs.GWLBServiceName']
+        stackFunction: "web"
 
   TgwStack:
     Type: AWS::CloudFormation::Stack
@@ -531,7 +540,21 @@ Resources:
         Spoke2VpcTgwAttachSubnet2Id: !GetAtt ['Spoke2VpcStackWeb', 'Outputs.SpokeTgwAttachSubnet2Id']
         Spoke2VpcRtb1Id: !GetAtt ['Spoke2VpcStackWeb', 'Outputs.SpokeApplicationRouteTableId']
         AccessLocation: !Ref AccessLocation
-
+        StackShortName: !Sub ${AWS::StackName}    
+        stackFunction: "tgw"
+        
+        
+Outputs:
+  FW1mgmtEIP:
+    Description: Firewall 1 Managmment IP
+    Value: !GetAtt ['ApplianceVpcStack', 'Outputs.FW1mgmtEIP']
+  FW2mgmtEIP:
+    Description: Firewall 2 Managmment IP
+    Condition: isFT
+    Value: !GetAtt ['ApplianceVpcStack', 'Outputs.FW2mgmtEIP']
+  WebNLB:
+    Description: Load Balancer FQDN of the web server
+    Value: !GetAtt ['Spoke2VpcStackWeb', 'Outputs.NLBDNSName']
 
 
         

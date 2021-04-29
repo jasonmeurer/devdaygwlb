@@ -50,7 +50,7 @@ Resources:
             VolumeSize: 8
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-automated-prod"
+          Value: !Sub "automated-prod-${AWS::StackName}"
         - Key: Environment
           Value: prod
       UserData:
@@ -85,7 +85,7 @@ Resources:
             VolumeSize: 8
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-automated-dev"
+          Value: !Sub "automated-dev-${AWS::StackName}"
         - Key: Environment
           Value: dev
       UserData:

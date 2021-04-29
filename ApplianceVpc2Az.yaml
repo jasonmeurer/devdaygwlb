@@ -262,9 +262,14 @@ Parameters:
     Description: >- 
       Firewall Bootstrap Bucket
     Type: String  
+  stackFunction:
+    Description: >- 
+      VPC Function Name
+    Type: String    
   
 Conditions:
   isFT: !Equals [ !Ref FirewallRedundant, 'yes']
+  isnotFT: !Equals [ !Ref FirewallRedundant, 'no']
 
 Resources:
 
@@ -312,7 +317,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-tgw-attach-subnet-1"
+          Value: !Sub "${stackFunction}-tgwAttach-sn-az1-${StackShortName}"
 
   ApplianceSubnet1:
     Type: AWS::EC2::Subnet
@@ -323,7 +328,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-applinace-subnet-1"
+          Value: !Sub "${stackFunction}-fw-sn-az1-${StackShortName}"
 
   NatgwSubnet1:
     Type: AWS::EC2::Subnet
@@ -334,7 +339,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-natgw-subnet-1"
+          Value: !Sub "${stackFunction}-natgw-sn-az1-${StackShortName}"
   
   # AZ2:
   TgwAttachSubnet2:
@@ -346,7 +351,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-tgw-attach-subnet-2"
+          Value: !Sub "${stackFunction}-tgwAttach-sn-az2-${StackShortName}"
 
   ApplianceSubnet2:
     Type: AWS::EC2::Subnet
@@ -357,7 +362,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-appliance-subnet-2"
+          Value: !Sub "${stackFunction}-fw-sn-az2-${StackShortName}"
 
   NatgwSubnet2:
     Type: AWS::EC2::Subnet
@@ -368,7 +373,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-natgw-subnet-2"
+          Value: !Sub "${stackFunction}-natgw-sn-az2-${StackShortName}"
 
 # Create NAT Gateways:
 
@@ -387,7 +392,7 @@ Resources:
       SubnetId: !Ref NatgwSubnet1
       Tags:
       - Key: Name
-        Value: !Sub "${AWS::StackName}-natgw-1"
+        Value: !Sub "${stackFunction}-natgw-az1-${StackShortName}"
 
   # AZ2:
   Eip2:
@@ -404,7 +409,7 @@ Resources:
       SubnetId: !Ref NatgwSubnet2
       Tags:
       - Key: Name
-        Value: !Sub "${AWS::StackName}-natgw-2"
+        Value: !Sub "${stackFunction}-natgw-az2-${StackShortName}"
 
 # Create Route Tables: 
 
@@ -415,7 +420,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-tgw-attach-rtb-1"
+          Value: !Sub "${stackFunction}-tgwattach-az1-rtb-${StackShortName}"
 
   ApplianceRouteTable1:
     Type: AWS::EC2::RouteTable
@@ -423,7 +428,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-appliance-rtb-1"
+          Value: !Sub "${stackFunction}-fw-az1-rtb-${StackShortName}"
 
   NatGwRouteTable1:
     Type: AWS::EC2::RouteTable
@@ -431,7 +436,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-natgw-rtb-1"
+          Value: !Sub "${stackFunction}-natgw-az1-rtb-${StackShortName}"
 
   # AZ2:
   TgwAttachRouteTable2:
@@ -440,7 +445,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-tgw-attach-rtb-2"
+          Value: !Sub "${stackFunction}-tgwattach-az2-rtb-${StackShortName}"
 
   ApplianceRouteTable2:
     Type: AWS::EC2::RouteTable
@@ -448,7 +453,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-appliance-rtb-2"
+          Value: !Sub "${stackFunction}-fw-az2-rtb-${StackShortName}"
 
   NatGwRouteTable2:
     Type: AWS::EC2::RouteTable
@@ -456,7 +461,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-natgw-rtb-2"
+          Value: !Sub "${stackFunction}-natgw-az2-rtb-${StackShortName}"
 
 # Associate Subnets with appropriate Route Tables:
 
@@ -504,7 +509,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref Vpc
-      GroupName: !Sub "${AWS::StackName}-bastion-sg"
+      GroupName: !Sub "${stackFunction}-bastion-sg-${StackShortName}"
       GroupDescription: >-
         Access to bastion instance: allow SSH and ICMP access from appropriate location.
         Allow all traffic from VPC CIDR
@@ -528,13 +533,13 @@ Resources:
           ToPort: -1
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-bastion-sg"
+          Value: !Sub "${stackFunction}-bastion-sg-${StackShortName}"
 
   ApplianceSg:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref Vpc
-      GroupName: !Sub "${AWS::StackName}-appliance-sg"
+      GroupName: !Sub "${stackFunction}-app-sg-${StackShortName}"
       GroupDescription: >-
         Access to Appliance instance: allow SSH and ICMP access from Bastion SG.
         Allow all traffic from VPC CIDR
@@ -562,7 +567,7 @@ Resources:
           ToPort: -1
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-appliance-sg"
+          Value: !Sub "${stackFunction}-app-sg-${StackShortName}"
 
 # Create Appliances and related resources:
 
@@ -805,25 +810,25 @@ Resources:
             VolumeSize: !Ref ApplianceInstanceDiskSize
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-bastion-host"
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash -ex
+          Value: !Sub "${stackFunction}-bastion-${StackShortName}"
+      # UserData:
+      #   Fn::Base64: !Sub |
+      #     #!/bin/bash -ex
 
-          # Install packages:
-          yum update -y;
-          yum install htop -y;
+      #     # Install packages:
+      #     yum update -y;
+      #     yum install htop -y;
 
-          # Configure hostname:
-          hostnamectl set-hostname ${AWS::StackName}-bastion-host;
+      #     # Configure hostname:
+      #     hostnamectl set-hostname ${AWS::StackName}-bastion-host;
 
-          # Configure SSH client alive interval for ssh session timeout:
-          echo 'ClientAliveInterval 60' | sudo tee --append /etc/ssh/sshd_config;
-          service sshd restart;
+      #     # Configure SSH client alive interval for ssh session timeout:
+      #     echo 'ClientAliveInterval 60' | sudo tee --append /etc/ssh/sshd_config;
+      #     service sshd restart;
           
-          # Set dark background for vim:
-          touch /home/ec2-user/.vimrc;
-          echo "set background=dark" >> /home/ec2-user/.vimrc;
+      #     # Set dark background for vim:
+      #     touch /home/ec2-user/.vimrc;
+      #     echo "set background=dark" >> /home/ec2-user/.vimrc;
 
 # Create Gateway Load Balancer and related resources:
 
@@ -848,8 +853,9 @@ Resources:
           - - !Ref StackShortName
             - !Ref GwlbName
 
-  TargetGroup:
+  TargetGroupnotFT:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: isnotFT
     Properties:
       Name: !Join 
         - '-'
@@ -866,21 +872,57 @@ Resources:
       TargetType: instance
       Targets:
         - Id: !Ref GWLBFW1
-        - Id: !If [isFT, !Ref GWLBFW2, !Ref "AWS::NoValue"]
       Tags:
       - Key: Name
         Value: !Join 
           - '-'
           - - !Ref StackShortName
             - !Ref GwlbName
+            
+  TargetGroupFT:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: isFT
+    Properties:
+      Name: !Join 
+        - '-'
+        - - !Ref StackShortName
+          - !Ref TargetGroupName
+      Port: 6081
+      Protocol: GENEVE
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: "20"
+      VpcId: !Ref Vpc
+      HealthCheckPort: !Ref HealthPort
+      HealthCheckProtocol: !Ref HealthProtocol
+      TargetType: instance
+      Targets:
+        - Id: !Ref GWLBFW1
+        - Id: !Ref GWLBFW2
+      Tags:
+      - Key: Name
+        Value: !Join 
+          - '-'
+          - - !Ref StackShortName
+            - !Ref GwlbName            
 
-  Listener:
+  ListenernotFT:
     Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: isnotFT
     Properties:
       DefaultActions:
       - Type: forward
-        TargetGroupArn: !Ref TargetGroup
+        TargetGroupArn: !Ref TargetGroupnotFT
       LoadBalancerArn: !Ref Gwlb
+      
+  ListenerFT:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: isFT
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref TargetGroupFT
+      LoadBalancerArn: !Ref Gwlb      
 
 # Create VPC Endpoint Service:
 
@@ -930,14 +972,14 @@ Resources:
   VpceServiceLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-        LogGroupName: !Sub /aws/lambda/${AWS::StackName}-service
+        LogGroupName: !Sub /aws/lambda/${stackFunction}-gwlb-svcname-${StackShortName}
         RetentionInDays: 1
 
   VpceServiceName:
     Type: AWS::Lambda::Function
     DependsOn: VpceServiceLogGroup
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-service
+      FunctionName: !Sub ${stackFunction}-gwlb-service-${StackShortName}
       Handler: "index.handler"
       Role: !GetAtt VpceServiceLambdaExecutionRole.Arn
       Code:
