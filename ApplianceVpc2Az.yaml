@@ -286,8 +286,9 @@ Resources:
         - Key: Name
           Value: !Join
             - ""
-            - - !Ref AWS::StackName
-              - "-vpc"
+            - - !Ref stackFunction
+              - "-vpc-"
+              - !Ref StackShortName
   
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -296,8 +297,9 @@ Resources:
         - Key: Name
           Value: !Join
             - ""
-            - - !Ref AWS::StackName
-              - "-igw"
+            - - !Ref stackFunction
+              - "-igw-"
+              - !Ref StackShortName
   
   AttachInternetGateway:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -1206,7 +1208,7 @@ Resources:
       SubnetId: !Ref NatgwSubnet1
       Tags:
         - Key: Name
-          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeriesManagement-AZ1'] ]
+          Value: !Join [ '-' , [ 'fw-mgmt-AZ1', !Ref StackShortName] ]
 
   VMSeriesManagementEIPAZ1:
     Type: AWS::EC2::EIP
@@ -1214,7 +1216,7 @@ Resources:
       Domain: vpc
       Tags:
         - Key: Name
-          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeriesManagement-AZ1'] ]
+          Value: !Join [ '-' , [ 'fw-eip-mgmt-AZ1', !Ref StackShortName] ]
 
   VMSeriesManagementEIPAssociationAZ1:
     Type: AWS::EC2::EIPAssociation
@@ -1231,7 +1233,7 @@ Resources:
       SubnetId: !Ref ApplianceSubnet1
       Tags:
         - Key: Name
-          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeries-Data-AZ1'] ]
+          Value: !Join [ '-' , [ 'fw-data-AZ1', !Ref StackShortName] ]
           
 # Firewall Networking AZ2
 
@@ -1244,7 +1246,7 @@ Resources:
       SubnetId: !Ref NatgwSubnet2
       Tags:
         - Key: Name
-          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeriesManagement-AZ2'] ]
+          Value: !Join [ '-' , [ 'fw-mgmt-AZ2', !Ref StackShortName] ]
 
   VMSeriesManagementEIPAZ2:
     Type: AWS::EC2::EIP
@@ -1253,7 +1255,7 @@ Resources:
       Domain: vpc
       Tags:
         - Key: Name
-          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeriesManagement-AZ2'] ]
+          Value: !Join [ '-' , [ 'fw-eip-mgmt-AZ2', !Ref StackShortName] ]
 
   VMSeriesManagementEIPAssociationAZ2:
     Type: AWS::EC2::EIPAssociation
@@ -1272,7 +1274,7 @@ Resources:
       SubnetId: !Ref ApplianceSubnet2
       Tags:
         - Key: Name
-          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'VMSeries-Data-AZ2'] ]          
+          Value: !Join [ '-' , [ 'fw-data-AZ1', !Ref StackShortName] ]
         
 # Create Firewall  
 
@@ -1294,7 +1296,7 @@ Resources:
       Monitoring: false
       Tags:
         - Key: Name
-          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'gwlbFW-1'] ]
+          Value: !Join [ '-' , [ 'fw1-az1', !Ref StackShortName] ]
       NetworkInterfaces:
         - NetworkInterfaceId: !Ref VMSeriesManagementENIAZ1
           DeviceIndex: '1'
@@ -1349,7 +1351,7 @@ Resources:
       Monitoring: false
       Tags:
         - Key: Name
-          Value: !Join [ '-' , [ !Ref "AWS::StackName", 'gwlbFW-2'] ]
+          Value: !Join [ '-' , [ 'fw2-az2', !Ref StackShortName] ]
       NetworkInterfaces:
         - NetworkInterfaceId: !Ref VMSeriesManagementENIAZ2
           DeviceIndex: '1'

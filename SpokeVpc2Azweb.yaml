@@ -599,7 +599,27 @@ Resources:
           sudo wget -O /var/www/html/sql-attack.html https://raw.githubusercontent.com/PaloAltoNetworks/aws/master/two-tier-sample/sql-attack.html &&
           sudo ln -sf /etc/apache2/conf-available/serve-cgi-bin.conf /etc/apache2/conf-enabled/serve-cgi-bin.conf &&
           sudo ln -sf /etc/apache2/mods-available/cgi.load /etc/apache2/mods-enabled/cgi.load &&
-          sudo wget -O /var/www/html/eicar.txt https://secure.eicar.org/eicar.com.txt  
+          sudo wget -O /var/www/html/eicar.txt https://secure.eicar.org/eicar.com.txt  &&
+          sudo cat <<EOF > var/www/html/index.html
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Main Page with Links</title>
+                </head>
+                <body>
+                    <p>Landing Page</p>
+                    <p>
+                        <A HREF="eicar.txt">Sample Malware File</A>
+                    </p>
+                    <p>
+                        <A HREF="sql-attack.html">SQL Attack</A>
+                    </p>        
+                    <p>
+                        <A HREF="wordpress/">Wordpress</A>
+                    </p>        
+                </body>
+            </html>
+          EOF
           sudo systemctl restart apache2          
 
   # Application2:
@@ -737,6 +757,10 @@ Resources:
       Port: 80
       Protocol: TCP
       VpcId: !Ref Vpc 
+      Name: !Join 
+        - '-'
+        - - !Ref StackShortName
+          - web-tg      
       
 # Create Wweb Listener
   WebNLBlistener:
