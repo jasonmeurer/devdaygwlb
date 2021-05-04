@@ -172,7 +172,7 @@ Parameters:
   KeyPairName:
     Description: EC2 KeyPair required for accessing EC2 instance
     Type: AWS::EC2::KeyPair::KeyName
-    Default: awsmain
+    Default: ee-default-keypair
     ConstraintDescription: Must be the name of an existing EC2 KeyPair
   AccessLocation:
     Description: >-
@@ -381,7 +381,7 @@ Parameters:
   FirewallAmiID:
     Description: Firewall AMI
     Type: String
-    Default: ami-0073e5cfb0d4d3b28
+    Default: ami-03d604b005faeb653
   VmseriesBootstrapS3BucketName:  
     Description: Firewall Bootstrap Bucket
     Type: String
