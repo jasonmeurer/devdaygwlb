@@ -381,7 +381,7 @@ Parameters:
   FirewallAmiID:
     Description: Firewall AMI
     Type: String
-    Default: ami-0f8114c92ca93c98
+    Default: ami-0f8114c92ca93c985
   VmseriesBootstrapS3BucketName:  
     Description: Firewall Bootstrap Bucket
     Type: String
