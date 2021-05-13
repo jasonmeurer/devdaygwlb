@@ -52,7 +52,7 @@ Resources:
         - Key: Name
           Value: !Sub "automated-prod-${AWS::StackName}"
         - Key: Environment
-          Value: prod
+          Value: Prod
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -ex
@@ -87,7 +87,7 @@ Resources:
         - Key: Name
           Value: !Sub "automated-dev-${AWS::StackName}"
         - Key: Environment
-          Value: dev
+          Value: Dev
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -ex
