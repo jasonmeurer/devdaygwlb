@@ -56,6 +56,7 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -ex
+          sleep 120s &&
           until $(curl --output /dev/null --silent --head --fail "http://neverssl.com"); do
             sleep 10s
           done &&
@@ -91,6 +92,7 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -ex
+          sleep 120s &&
           until $(curl --output /dev/null --silent --head --fail "http://neverssl.com"); do
             sleep 10s
           done &&
@@ -103,9 +105,9 @@ Resources:
           echo "Done"
    
 Outputs:
-  Instance1PrivateIp:
+  ProdPrivateIp:
     Description: Prod Instance Private IP
     Value: !GetAtt Instance1.PrivateIp
-  Instance2PrivateIp:
+  DevPrivateIp:
     Description: Dev Instance Private IP
     Value: !GetAtt Instance2.PrivateIp    
